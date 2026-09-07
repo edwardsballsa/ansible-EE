@@ -1,0 +1,50 @@
+version: 3
+
+images:
+  base_image:
+    name: registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+#    name: registry.fedoraproject.org/fedora:42
+
+options:
+  package_manager_path: /usr/bin/microdnf
+
+dependencies:
+  python: requirements.txt
+  system: bindep.txt
+  galaxy: requirements.yml
+  python_interpreter:
+    package_system: python3-pip
+    python_path: /usr/bin/python3
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
+
+additional_build_steps:
+  prepend_base:
+    - RUN microdnf install -y python3-pip
+    - RUN python3 -m pip install --upgrade pip  
+    - RUN dnf groupinstall -y "Development Tools" || microdnf install -y gcc python3-devel
+    - RUN dnf install -y libxml2-devel libcurl-devel openssl-devel || microdnf install -y libxml2-devel libcurl-devel openssl-devel
+
+#  append_final:
+    # Install CloudQuery CLI
+#    - RUN mkdir -p /opt/cloudquery
+#    - RUN curl -L https://github.com/cloudquery/cloudquery/releases/download/cli-v6.35.5/cloudquery_linux_amd64 -o /opt/cloudquery/cloudquery
+#    - RUN chmod a+x /opt/cloudquery/cloudquery
+
+    # Install kiro CLI
+#    - RUN curl -fsSL https://cli.kiro.dev/install | bash
+#    - RUN ln -sf /home/runner/.local/bin/kiro-cli /usr/local/bin/kiro-cli
+#    - ENV PATH="/home/runner/.local/bin:${PATH}"
+
+    # Install AWS CLI v2
+#    - RUN curl -L "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+#    - RUN unzip /tmp/awscliv2.zip -d /tmp
+#    - RUN /tmp/aws/install
+#    - RUN rm -rf /tmp/aws /tmp/awscliv2.zip
+#    - RUN aws --version
+    
+#additional_build_files:
+#  - src: files/
+#    dest: /opt/files/
