@@ -1,0 +1,76 @@
+name: Build AAP EE for Windows target hosts
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'execution-environment.yml'
+      - 'requirements.yml'
+      - 'requirements.txt'
+      - 'bindep.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # For OIDC to Red Hat (optional, fallback to secrets)
+
+jobs:
+  build-ee:
+#    runs-on: ubuntu-latest
+    runs-on: registry.redhat.io/ansible-automation-platform-27/ansible-builder-rhel9:latest
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}-ee
+#      IMAGE_NAME: aap-test-ee
+
+    steps:
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+        
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip podman
+#          sudo mkdir -p /opt/cloudquery
+#          sudo curl -L https://github.com/cloudquery/cloudquery/releases/download/cli-v6.34.2/cloudquery_linux_amd64 -o /opt/cloudquery/cloudquery
+#          sudo chmod a+x /opt/cloudquery/cloudquery
+
+      - name: Login to Red Hat Registry
+        uses: redhat-actions/podman-login@v1  # Updated to latest
+        with:
+          registry: registry.redhat.io
+          username: ${{ secrets.RH_REGISTRY_USER }}
+          password: ${{ secrets.RH_REGISTRY_TOKEN }}
+
+      - name: Install ansible-builder
+        run: |
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user ansible-builder
+
+      - name: Build execution environment
+        run: |
+          ansible-builder build \
+            -v \
+            -f windows/execution-environment.yml \
+            -t $(echo "$REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME" | tr '[:upper:]' '[:lower:]'):latest \
+            -t $(echo "$REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME" | tr '[:upper:]' '[:lower:]'):${{ github.sha }} \
+            -t $(echo "$REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME" | tr '[:upper:]' '[:lower:]'):${{ steps.date.outputs.date }}
+
+      - name: Log in to GHCR
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to GHCR
+        run: |
+          podman push  $(echo "$REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME" | tr '[:upper:]' '[:lower:]'):latest
+          podman push  $(echo "$REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME" | tr '[:upper:]' '[:lower:]'):${{ github.sha }}
+          podman push  $(echo "$REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME" | tr '[:upper:]' '[:lower:]'):${{ steps.date.outputs.date }}
