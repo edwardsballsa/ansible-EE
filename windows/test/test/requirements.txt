@@ -1,0 +1,4 @@
+pywinrm
+requests
+pip
+ansible-pylibssh
