@@ -17,8 +17,8 @@ permissions:
 
 jobs:
   build-ee:
-    runs-on: ubuntu-latest
-#    runs-on: registry.redhat.io/ansible-automation-platform-27/ansible-builder-rhel9:latest
+#    runs-on: ubuntu-latest
+    runs-on: registry.redhat.io/ansible-automation-platform-27/ansible-builder-rhel9:latest
 
     env:
       REGISTRY: ghcr.io
